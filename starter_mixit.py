@@ -1,20 +1,33 @@
+####
+####  1. Imports
+####
+
 from gensim.models.word2vec import Word2Vec
 from gensim.models.phrases import Phrases, Phraser
 from tqdm import tqdm
 import pandas as pd
 import string
 
+####
+####  2. tqdm
+####
 
-# Please run this beforehand so you will be able to see a progress bar while running pandas operations
 tqdm.pandas()
 
-# Load the dataset using pandas
+####
+####  3. Chargement du dataset
+####  Pandas DataFrame doc : https://pandas.pydata.org/pandas-docs/stable/reference/api/pandas.DataFrame.html
+
 df_wiki = pd.read_csv("en_wiki_SMALL.txt", header=None, sep="noWayYouFindThisSentence268346315618")
 
-# Refer to pandas documentation to operates on DataFrame :
-# https://pandas.pydata.org/pandas-docs/stable/reference/api/pandas.DataFrame.html
-# You may use df_wiki.head() to quickly see your data
 
+
+####
+####   AMELIORATION CONTINUE
+####
+####
+####  a) Définition de ma fonction de nettoyage
+####
 
 def clean(text):
     """
@@ -27,18 +40,28 @@ def clean(text):
     return text.split()
 
 
-# Creates a new column with cleaned data using the clean fonction for each wikipedia article
+####
+####  b) Nettoyage du dataset
+####
+
 df_wiki["clean"] = df_wiki[0].progress_apply(lambda r: clean(r))
 
-# Generate and train a W2V model using your clean dataset
-# Word2Vec doc : https://radimrehurek.com/gensim/models/word2vec.html
+
+####
+####  c) Entraînement du Word2Vec
+####  Word2Vec doc : https://radimrehurek.com/gensim/models/word2vec.html
+
 w2v = Word2Vec(df_wiki.clean,
-               min_count="TO_BE_REMOVED",
-               window="TO_BE_REMOVED",
-               size="TO_BE_REMOVED",
-               sg="TO_BE_REMOVED",
+               min_count=None,
+               window=None,
+               size=None,
+               sg=None,
                )
 
+
+####
+####  d) Evaluation du Word2Vec
+####
 
 def evaluate_model(w2v, evaluation_path_file="questions-words.txt"):
     """
@@ -57,6 +80,22 @@ def evaluate_model(w2v, evaluation_path_file="questions-words.txt"):
 
 
 #### FIRST ITERATION ####
+
+def remove_punctuation(text, punctuation=string.punctuation):
+    """
+    From string.punctuation, each character is replaced by None (the character is removed)
+    """
+    text = text.translate(str.maketrans('', '', punctuation))
+    return text
+
+
+def lowercase_text(text):
+    """
+    Each character is replaced by his lowercase version
+    """
+    text = text.lower()
+    return text
+
 
 # Stopwords data
 stopwords_en = {"ourselves", "hers", "between", "yourself", "but", "again", "there", "about", "once", "during", "out",
@@ -77,23 +116,6 @@ def remove_stopwords(text, stopwords):
     """
     text = " ".join([w for w in text.split() if w not in stopwords])
     return text
-
-
-def remove_punctuation(text, punctuation=string.punctuation):
-    """
-    From string.punctuation, each character is replaced by None (the character is removed)
-    """
-    text = text.translate(str.maketrans('', '', punctuation))
-    return text
-
-
-def lowercase_text(text):
-    """
-    Each character is replaced by his lowercase version
-    """
-    text = text.lower()
-    return text
-
 
 def compare_models(tokens, wvs, titles):
     """
