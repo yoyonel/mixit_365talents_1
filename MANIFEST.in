@@ -10,4 +10,4 @@ prune tests
 global-exclude *.py[cod] __pycache__ *.so *.dylib
 
 include *.sh
-recursive-include datas *.txt
+recursive-include src/mixit_365talents/datas *.txt
