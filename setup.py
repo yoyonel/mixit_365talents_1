@@ -10,7 +10,7 @@ setup(
     description='',
     author=['Lionel Atty', ],
     author_email=['yoyonel@hotmail.com', ],
-    url='',
+    url='https://github.com/yoyonel/mixit_365talents_1',
     packages=['mixit_365talents.{}'.format(x) for x in find_packages('src/mixit_365talents')],
     package_dir={'': 'src'},
     classifiers=[
