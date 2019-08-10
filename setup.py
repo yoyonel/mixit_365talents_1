@@ -30,6 +30,7 @@ setup(
     ],
     keywords=[],
     install_requires=[
+        "coloredlogs==10.0",
         "gensim==3.8.0",
         "pandas==0.25.0",
         "tqdm==4.33.0",

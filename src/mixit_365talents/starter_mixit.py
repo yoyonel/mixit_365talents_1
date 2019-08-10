@@ -1,12 +1,28 @@
+import logging
 import string
 from pathlib import Path
 
 import pandas as pd
 import pkg_resources
-from gensim.models.phrases import Phraser, Phrases
 from gensim.models.word2vec import Word2Vec
 from pandas import DataFrame
 from tqdm import tqdm
+
+from mixit_365talents.tools.fct_logger import init_logger
+
+logger = logging.getLogger('mixit_365talents.starter_mixit')
+
+# Stopwords data
+stopwords_en = {"ourselves", "hers", "between", "yourself", "but", "again", "there", "about", "once", "during", "out",
+                "very", "having", "with", "they", "own", "an", "be", "some", "for", "do", "its", "yours", "such",
+                "into", "of", "most", "itself", "other", "off", "is", "s", "am", "or", "who", "as", "from", "him",
+                "each", "the", "themselves", "until", "below", "are", "we", "these", "your", "his", "through", "don",
+                "nor", "me", "were", "her", "more", "himself", "this", "down", "should", "our", "their", "while",
+                "above", "both", "up", "to", "ours", "had", "she", "all", "no", "when", "at", "any", "before", "them",
+                "same", "and", "been", "have", "in", "will", "on", "does", "yourselves", "then", "that", "because",
+                "what", "over", "why", "so", "can", "did", "not", "now", "under", "he", "you", "herself", "has", "just",
+                "where", "too", "only", "myself", "which", "those", "i", "after", "few", "whom", "t", "being", "if",
+                "theirs", "my", "against", "a", "by", "doing", "it", "how", "further", "was", "here", "than"}
 
 
 def load_dataset(path_to_dataset: Path) -> DataFrame:
@@ -45,14 +61,48 @@ def evaluate_model(w2v, evaluation_path_file="questions-words.txt"):
     """
     Given a w2v, print scores for analogies evaluation.
     """
-    score, source = w2v.wv.evaluate_word_analogies(evaluation_path_file, dummy4unknown=False)
-    print("Within model vocab :", score)
-    score, source = w2v.wv.evaluate_word_analogies(evaluation_path_file, dummy4unknown=True)
-    print("Whole eval dataset :", score)
+    score, sections = w2v.wv.evaluate_word_analogies(evaluation_path_file, dummy4unknown=False)
+    logger.info("Within model vocab : %.2f%%", 100.0 * score)
+    score, sections = w2v.wv.evaluate_word_analogies(evaluation_path_file, dummy4unknown=True)
+    logger.info("Whole eval dataset : %.2f%%", 100.0 * score)
 
     ########################
     #### CLEANING TOOLS ####
     ########################
+
+
+def remove_punctuation(text, punctuation=string.punctuation):
+    """
+    From string.punctuation, each character is replaced by None (the character is removed)
+    """
+    text = text.translate(str.maketrans('', '', punctuation))
+    return text
+
+
+def lowercase_text(text):
+    """
+    Each character is replaced by his lowercase version
+    """
+    text = text.lower()
+    return text
+
+
+def remove_stopwords(text, stopwords):
+    """
+    Remove every occurrence of the given stopwords set
+    """
+    text = " ".join([w for w in text.split() if w not in stopwords])
+    return text
+
+
+def compare_models(tokens, wvs, titles):
+    """
+    Pretty print for most_similar for multiple w2v
+    """
+    results = {}
+    for wv, title in zip(wvs, titles):
+        results.update({title: [i[0] for i in wv.most_similar(tokens)]})
+    return pd.DataFrame(data=results)
 
 
 def process():
@@ -73,6 +123,32 @@ def process():
     ####
     # c) Entraînement du Word2Vec
     # Word2Vec doc : https://radimrehurek.com/gensim/models/word2vec.html
+    # w2v = Word2Vec(
+    #     df_wiki.clean,
+    #     # min_count=None,
+    #     # window=None,
+    #     # size=None,
+    #     # sg=None,
+    # )
+
+    evaluation_path_file = path_to_data / "questions-words.txt"
+    assert evaluation_path_file.exists()
+    #
+    # evaluate_model(w2v, str(evaluation_path_file))
+
+    #
+    # #### FIRST ITERATION ####
+    #
+    #
+    #
+    tqdm.pandas(desc='cleaning tools (remove punctuations, lowercase, remove stopwords)')
+    df_wiki["clean"] = df_wiki["clean"].progress_apply(
+        lambda r: [
+            remove_stopwords(lowercase_text(remove_punctuation(w)), stopwords_en)
+            for w in r
+        ]
+    )
+
     w2v = Word2Vec(
         df_wiki.clean,
         # min_count=None,
@@ -80,56 +156,8 @@ def process():
         # size=None,
         # sg=None,
     )
-
-    evaluation_path_file = path_to_data / "questions-words.txt"
-    assert evaluation_path_file.exists()
-    #
     evaluate_model(w2v, str(evaluation_path_file))
 
-    #
-    # #### FIRST ITERATION ####
-    #
-    # def remove_punctuation(text, punctuation=string.punctuation):
-    #     """
-    #     From string.punctuation, each character is replaced by None (the character is removed)
-    #     """
-    #     text = text.translate(str.maketrans('', '', punctuation))
-    #     return text
-    #
-    # def lowercase_text(text):
-    #     """
-    #     Each character is replaced by his lowercase version
-    #     """
-    #     text = text.lower()
-    #     return text
-    #
-    # # Stopwords data
-    # stopwords_en = {"ourselves", "hers", "between", "yourself", "but", "again", "there", "about", "once", "during", "out",
-    #                 "very", "having", "with", "they", "own", "an", "be", "some", "for", "do", "its", "yours", "such",
-    #                 "into", "of", "most", "itself", "other", "off", "is", "s", "am", "or", "who", "as", "from", "him",
-    #                 "each", "the", "themselves", "until", "below", "are", "we", "these", "your", "his", "through", "don",
-    #                 "nor", "me", "were", "her", "more", "himself", "this", "down", "should", "our", "their", "while",
-    #                 "above", "both", "up", "to", "ours", "had", "she", "all", "no", "when", "at", "any", "before", "them",
-    #                 "same", "and", "been", "have", "in", "will", "on", "does", "yourselves", "then", "that", "because",
-    #                 "what", "over", "why", "so", "can", "did", "not", "now", "under", "he", "you", "herself", "has", "just",
-    #                 "where", "too", "only", "myself", "which", "those", "i", "after", "few", "whom", "t", "being", "if",
-    #                 "theirs", "my", "against", "a", "by", "doing", "it", "how", "further", "was", "here", "than"}
-    #
-    # def remove_stopwords(text, stopwords):
-    #     """
-    #     Remove every occurrence of the given stopwords set
-    #     """
-    #     text = " ".join([w for w in text.split() if w not in stopwords])
-    #     return text
-    #
-    # def compare_models(tokens, wvs, titles):
-    #     """
-    #     Pretty print for most_similar for multiple w2v
-    #     """
-    #     results = {}
-    #     for wv, title in zip(wvs, titles):
-    #         results.update({title: [i[0] for i in wv.most_similar(tokens)]})
-    #     return pd.DataFrame(data=results)
     #
     # #### SECOND ITERATION ####
     #
@@ -162,6 +190,11 @@ def process():
 
 def main():
     tqdm.pandas()
+
+    # set logger(s) levels
+    init_logger('debug')
+    logging.getLogger('gensim.models').setLevel(logging.INFO)
+    logging.getLogger('smart_open.smart_open_lib').setLevel(logging.ERROR)
 
     process()
 
