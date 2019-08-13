@@ -12,8 +12,8 @@ setup(
     author_email=['yoyonel@hotmail.com', ],
     url='https://github.com/yoyonel/mixit_365talents_1',
     packages=['mixit_365talents.{}'.format(x) for x in find_packages('src/mixit_365talents')],
-    package_dir={'mixit_365talents': 'src'},
-    package_data={'mixit_365talents': ['data/*.txt']},
+    package_dir={'': 'src'},
+    package_data={'': ['data/*.txt']},
     classifiers=[
         # complete classifier list: http://pypi.python.org/pypi?%3Aaction=list_classifiers
         'Development Status :: 5 - Production/Stable',
